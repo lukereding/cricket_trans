@@ -11,7 +11,7 @@ require(magrittr)
 
 for(i in 1:length(files)){
   df <- read_csv(files[i])
-  
+  print(files[i])
   df$female <- rep(1:(nrow(df)/3), each = 3)
   df$trial <- rep(c("a_vs_b", "b_vs_c", "a_vs_c"), (nrow(df)/3))
   names(df)[1] <- "pref"
@@ -25,20 +25,118 @@ for(i in 1:length(files)){
   here$exp <- files[i]
   if(i == 1){
     final <- here
+    df_total <- df
   }
   else{
     final <- bind_rows(final, here)
+    df_total <- bind_rows(df_total, df)
   }
 }
+
+# df_total$exp %<>% factor(levels = c("pulse and loudness 1", "pulse and loudness 2", "pulse and loudness 3", "chirp and loudness 1", "chirp and loudness 2", "chirp and loudness 3", "chirp and pulse 1", "chirp and pulse 2", "chirp and pulse 3"))
+
+final$pattern %<>% factor(levels = c( "lisl", "sils", "sli" , "lsi",  "sil" , "ils" ,  "isl"  ,"lis"))
+
+## make sure boxplots look right
+df_total %>%
+  gather(trial, pref, a_vs_b:a_vs_c) %>%
+  {
+    .$trial <- factor(.$trial, levels = c("a_vs_b", "b_vs_c", "a_vs_c"))
+    .
+  } %>%
+  ggplot(aes(trial, pref)) +
+  geom_hline(yintercept = 0, color = "grey") +
+  geom_boxplot(coef = 100) +
+  geom_line(aes(group = female), col = "#00000050") +
+  facet_wrap(~exp, nrow = 3, ncol = 3)
+
+## individual data
+df_total %>%
+  gather(trial, pref, a_vs_b:a_vs_c) %>%
+  {
+    .$trial <- factor(.$trial, levels = c("a_vs_b", "b_vs_c", "a_vs_c"))
+    .
+  } %>%
+  ggplot(aes(trial, pref)) +
+  geom_jitter(height = 0, width = 0.1, aes(color = factor(female))) +
+  facet_wrap(~exp, nrow = 3, ncol = 3)+
+  geom_hline(yintercept = 0, col = "grey50") +
+  scale_colour_tableau(guide = F)
 
 
 
 require(treemapify)
-final %>% group_by(exp, pattern) %>% tally %>%
-ggplot(aes(area = n, fill = pattern)) +
+require(ggthemes)
+require(viridis)
+final %>% 
+  group_by(exp, pattern) %>% 
+  tally %>%
+ggplot(aes(area = n, fill = pattern, label = pattern)) +
   geom_treemap() +
   facet_wrap(~exp) +
-  scale_fill_calc()
+  geom_treemap_text(
+    colour = "white",
+    place = "centre",
+    grow = TRUE
+  ) +
+  scale_fill_manual(values = c("#E84F22","orange", viridis(6)))
+
+final %>% 
+  group_by(exp, transitive_status) %>% 
+  tally %>%
+  ggplot(aes(area = n, fill = transitive_status, label = transitive_status)) +
+  geom_treemap() +
+  geom_treemap_text(
+    colour = "white",
+    place = "centre",
+    grow = TRUE
+  ) +
+  facet_wrap(~exp) +
+  scale_fill_manual(values = c("#E84F22","#8B8B8B", viridis(6)))
+
+
+final %>% 
+  group_by(exp, stoch) %>% 
+  tally %>%
+  ggplot(aes(area = n, fill = stoch, label = stoch)) +
+  geom_treemap() +
+  geom_treemap_text(
+    colour = "white",
+    place = "centre",
+    grow = TRUE
+  ) +
+  facet_wrap(~exp) +
+  scale_fill_manual(values = c("#E84F22","#8B8B8B", viridis(6)))
+
+final %>% 
+  group_by(exp, best_male) %>% 
+  tally %>%
+  ggplot(aes(area = n, fill = best_male, label = best_male)) +
+  geom_treemap() +
+  geom_treemap_text(
+    colour = "white",
+    place = "centre",
+    grow = TRUE
+  ) +
+  facet_wrap(~exp) +
+  scale_fill_manual(values = c("#E84F22","#8B8B8B", viridis(6)))
+
+# more / fewer intransitivies than expected by chance?
+nested <- final %>%
+  group_by(exp) %>%
+  nest
+
+nested %<>% mutate(
+  sample_size = map_int(data, nrow),
+  number_trans = map_int(data, ~ .x %>% filter(transitive_status == "transitive") %>% nrow),
+  number_intrans = map_int(data, ~ .x %>% filter(transitive_status == "intransitive") %>% nrow),
+  prop_intrans = number_intrans / (number_intrans + number_trans)
+)
+total_trans <- sum(nested$number_trans)
+total_intrans <- sum(nested$number_intrans)
+
+binom.test(total_intrans, n = total_intrans + total_trans, p = 0.25)
+
 
 
 # 
@@ -62,24 +160,21 @@ ggplot(aes(area = n, fill = pattern)) +
 
 
 
-
-library(igraph)
-library(network)
-library(sna)
-library(ggplot2)
-library(GGally)
-library(intergraph)
-library(cowplot)
-
-
-
 return.transitivity.directed.plots <- function(df){
+  
+  library(igraph)
+  library(network)
+  library(sna)
+  library(ggplot2)
+  library(GGally)
+  library(intergraph)
+  library(cowplot)
   
   # allocate a list for the graphs
   plot_list <- vector(mode = "list", length = nrow(df))
   
   # allocate vectors for female x index dataframe
-  female_vector <- index_vector <- transitive <- stoch <- pattern <- vector(length = nrow(df))
+  female_vector <- index_vector <- transitive <- stoch <- pattern <- best_male <- vector(length = nrow(df))
   
   # make all the nodes stay in the same spots across all graphs
   g <- graph( c("S", "I", "I", "L", "S", "L"), directed = TRUE)
@@ -95,13 +190,14 @@ return.transitivity.directed.plots <- function(df){
     x <- df$a_vs_b[i]
     y <- df$b_vs_c[i]
     z <- df$a_vs_c[i]
+    print(c(x,y,z))
     
     
     # determine the direction of preference for each comparison
     # transitive: all x, y, z > 0
     if(x >= 0 && y >= 0 && z >= 0){
       g <- graph( c("S", "I", "I", "L", "S", "L"), directed = TRUE)
-      E(g)$weight <- c(df$a_vs_b[i], df$b_vs_c[i], df$a_vs_c[i]) %>% round(3)
+      E(g)$weight <- c(df$a_vs_b[i], df$b_vs_c[i], df$a_vs_c[i]) 
       g <- set.graph.attribute(g, "transitivity", "transitive")
       g <- set.graph.attribute(g, "pattern", "lis")
       g <- set.graph.attribute(g, "best_male", "large")
@@ -111,7 +207,7 @@ return.transitivity.directed.plots <- function(df){
       
     } else if(x < 0 & y >= 0 & z >= 0){
       g <- graph( c("I", "S", "I", "L", "S", "L"), directed = TRUE)
-      E(g)$weight <- c((1 - df$a_vs_b[i]), df$b_vs_c[i], df$a_vs_c[i]) %>% round(3)
+      E(g)$weight <- c((1 - df$a_vs_b[i]), df$b_vs_c[i], df$a_vs_c[i]) 
       g <- set.graph.attribute(g, "transitivity", "transitive")
       g <- set.graph.attribute(g, "best_male", "large")
       g <- set.graph.attribute(g, "pattern", "lsi")
@@ -121,7 +217,7 @@ return.transitivity.directed.plots <- function(df){
       
     } else if(x >= 0 & y < 0 & z >= 0){
       g <- graph( c("S", "I", "L", "I", "S", "L"), directed = TRUE)
-      E(g)$weight <- c(df$a_vs_b[i], (1-df$b_vs_c[i]), df$a_vs_c[i]) %>% round(3)
+      E(g)$weight <- c(df$a_vs_b[i], (1-df$b_vs_c[i]), df$a_vs_c[i]) 
       g <- set.graph.attribute(g, "transitivity", "transitive")
       g <- set.graph.attribute(g, "best_male", "intermediate")
       g <- set.graph.attribute(g, "pattern", "ils")
@@ -131,7 +227,7 @@ return.transitivity.directed.plots <- function(df){
       
     } else if(x >= 0 & y >= 0 & z < 0){
       g <- graph( c("S", "I", "I", "L", "L", "S"), directed = TRUE)
-      E(g)$weight <- c(df$a_vs_b[i], df$b_vs_c[i], (1-df$a_vs_c[i])) %>% round(3)
+      E(g)$weight <- c(df$a_vs_b[i], df$b_vs_c[i], (1-df$a_vs_c[i])) 
       g <- set.graph.attribute(g, "transitivity", "intransitive")
       g <- set.graph.attribute(g, "best_male", "none")
       g <- set.graph.attribute(g, "pattern", "lisl")
@@ -139,7 +235,7 @@ return.transitivity.directed.plots <- function(df){
       
     } else if(x >= 0 & y < 0 & z < 0){
       g <- graph( c("S", "I", "L", "I", "L", "S"), directed = TRUE)
-      E(g)$weight <- c(df$a_vs_b[i], (1-df$b_vs_c[i]), (1-df$a_vs_c[i])) %>% round(3)
+      E(g)$weight <- c(df$a_vs_b[i], (1-df$b_vs_c[i]), (1-df$a_vs_c[i])) 
       g <- set.graph.attribute(g, "transitivity", "transitive")
       g <- set.graph.attribute(g, "best_male", "intermediate")
       g <- set.graph.attribute(g, "pattern", "isl")
@@ -149,7 +245,7 @@ return.transitivity.directed.plots <- function(df){
       
     } else if(x < 0 & y < 0 & z < 0){
       g <- graph( c("I", "S", "L", "I", "L", "S"), directed = TRUE)
-      E(g)$weight <- c((1-df$a_vs_b[i]), (1-df$b_vs_c[i]), (1-df$a_vs_c[i])) %>% round(3)
+      E(g)$weight <- c((1-df$a_vs_b[i]), (1-df$b_vs_c[i]), (1-df$a_vs_c[i])) 
       g <- set.graph.attribute(g, "transitivity", "transitive")
       g <- set.graph.attribute(g, "best_male", "small")
       g <- set.graph.attribute(g, "pattern", "sil")
@@ -159,7 +255,7 @@ return.transitivity.directed.plots <- function(df){
       
     } else if(x < 0 & y >= 0 & z < 0){
       g <- graph( c("I", "S", "I", "L", "L", "S"), directed = TRUE)
-      E(g)$weight <- c((1-df$a_vs_b[i]), df$b_vs_c[i], (1-df$a_vs_c[i])) %>% round(3)
+      E(g)$weight <- c((1-df$a_vs_b[i]), df$b_vs_c[i], (1-df$a_vs_c[i])) 
       g <- set.graph.attribute(g, "transitivity", "transitive")
       g <- set.graph.attribute(g, "best_male", "small")
       g <- set.graph.attribute(g, "pattern", "sli")
@@ -169,7 +265,7 @@ return.transitivity.directed.plots <- function(df){
       
     } else if(x < 0 & y < 0 & z >= 0){
       g <- graph( c("I", "S", "L", "I", "S", "L"), directed = TRUE)
-      E(g)$weight <- c((1-df$a_vs_b[i]), (1-df$b_vs_c[i]), df$a_vs_c[i]) %>% round(3)
+      E(g)$weight <- c((1-df$a_vs_b[i]), (1-df$b_vs_c[i]), df$a_vs_c[i]) 
       g <- set.graph.attribute(g, "transitivity", "intransitive")
       g <- set.graph.attribute(g, "best_male", "none")
       g <- set.graph.attribute(g, "pattern", "sils")
@@ -212,7 +308,10 @@ return.transitivity.directed.plots <- function(df){
     } else{
       stop(paste0("trouble calcualting intransitivity index for ", name))
     }
-    
+    # if(i == 7){
+    #   browser()
+    # }
+    # 
     plot_list[[i]] <- ggnet2(g,
                              label = TRUE,
                              layout.exp = .3,
@@ -236,11 +335,12 @@ return.transitivity.directed.plots <- function(df){
     transitive[i] <- network::get.network.attribute(g, "transitivity")
     pattern[i] <- network::get.network.attribute(g, "pattern")
     stoch[i] <- network::get.network.attribute(g, "ss")
+    best_male[i] <- network::get.network.attribute(g, "best_male")
     
   } ## end for loop
   
   # make a dataframe from the female and index vectors
-  d <- data.frame(female = female_vector, index = index_vector, transitive_status = transitive, pattern = pattern, stoch = stoch)
+  d <- data.frame(female = female_vector, index = index_vector, transitive_status = transitive, pattern = pattern, stoch = stoch, best_male = best_male)
   
   return(list(plot_list, d))
 } # end function
