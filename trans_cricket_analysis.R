@@ -51,6 +51,7 @@ df_total %>%
   facet_wrap(~exp, nrow = 3, ncol = 3)
 
 ## individual data
+require(ggthemes)
 df_total %>%
   gather(trial, pref, a_vs_b:a_vs_c) %>%
   {
@@ -97,6 +98,7 @@ final %>%
 
 final %>% 
   group_by(exp, stoch) %>% 
+  filter(transitive_status != "intransitive") %>% 
   tally %>%
   ggplot(aes(area = n, fill = stoch, label = stoch)) +
   geom_treemap() +
@@ -105,8 +107,26 @@ final %>%
     place = "centre",
     grow = TRUE
   ) +
+  ggtitle("looking only at transitive gals...") +
   facet_wrap(~exp) +
   scale_fill_manual(values = c("#E84F22","#8B8B8B", viridis(6)))
+
+source("~/Documents/random_scripts/plotting_functions.R")
+final %>% 
+  filter(transitive_status != "intransitive") %>%
+  mutate(class = ifelse(exp %in% c("panel_a_values", "panel_b_values", "panel_c_values"), "one", 
+                                   ifelse(exp %in% c("panel_d_values", "panel_e_values", "panel_f_values"), "two", "three"))) %>% {
+                                     .$class <- factor(.$class, levels = c("one", "two", "three"))
+                                     .
+                                   } %>%
+  group_by(class, stoch) %>% 
+  tally %>%
+  ggplot(aes(x = class, y = n)) +
+  geom_col(aes(fill = stoch)) +
+  facet_wrap(~stoch, ncol = 3) +
+  rotate_labels() +
+  scale_fill_pen()
+
 
 final %>% 
   group_by(exp, best_male) %>% 
