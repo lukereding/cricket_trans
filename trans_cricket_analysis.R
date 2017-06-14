@@ -121,9 +121,8 @@ final %>%
                                    } %>%
   group_by(class, stoch) %>% 
   tally %>%
-  ggplot(aes(x = class, y = n)) +
-  geom_col(aes(fill = stoch)) +
-  facet_wrap(~stoch, ncol = 3) +
+  ggplot(aes(x = stoch, y = n)) +
+  geom_bar(aes(fill = class), position = "fill",stat = "identity") +
   rotate_labels() +
   scale_fill_pen()
 
