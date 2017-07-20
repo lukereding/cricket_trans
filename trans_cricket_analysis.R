@@ -148,8 +148,8 @@ ggplot(aes(area = n, fill = pattern, label = pattern)) +
   geom_treemap_text(
     colour = "white",
     place = "centre",
-    grow = TRUE
-  ) +
+    grow = F
+    ) +
   scale_fill_manual(values = c(brewer.pal(6,"YlOrRd")[5:6], brewer.pal(8,"Blues")[2:8]), guide = F)
 file = "~/Documents/cricket_trans/figs/3.png"
 ggsave(file, height = 5, width = 5)
