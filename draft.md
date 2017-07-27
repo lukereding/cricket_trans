@@ -117,7 +117,7 @@ So our conclusions at the population level are the crickets, at least where we c
 
 
 
-![3](/Users/lreding/Documents/cricket_trans/figs/3.png)
+![3](figs/3.png)
 
 In our cricket example, we concluded in the previous section that crickets were largely rational in their choice of mate. Here we track individual female crickets over time and ask how this changes our characterization of rationality in this system.
 

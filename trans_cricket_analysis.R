@@ -193,8 +193,7 @@ final %>%
   geom_treemap() +
   geom_treemap_text(
     colour = "white",
-    place = "centre",
-    grow = TRUE
+    place = "centre"
   ) +
   ggtitle("looking only at transitive gals...") +
   facet_wrap(~exp) +
@@ -212,12 +211,11 @@ final %>%
   geom_treemap() +
   geom_treemap_text(
     colour = "white",
-    place = "centre",
-    grow = TRUE
+    place = "centre"
   ) +
   ggtitle("looking only at transitive gals...") +
   facet_wrap(~exp) +
-  scale_fill_pen()
+  scale_fill_pen(guide = F)
 
 
 
@@ -245,8 +243,7 @@ final %>%
   geom_treemap() +
   geom_treemap_text(
     colour = "white",
-    place = "centre",
-    grow = TRUE
+    place = "centre"
   ) +
   facet_wrap(~exp) +
   scale_fill_pen(guide = F)
