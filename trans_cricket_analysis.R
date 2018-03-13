@@ -1,6 +1,198 @@
 
 source("https://raw.githubusercontent.com/lukereding/random_scripts/master/plotting_functions.R")
 
+
+
+
+return.transitivity.directed.plots <- function(df){
+  
+  library(igraph)
+  library(network)
+  library(sna)
+  library(ggplot2)
+  library(GGally)
+  library(intergraph)
+  library(cowplot)
+  
+  # allocate a list for the graphs
+  plot_list <- vector(mode = "list", length = nrow(df))
+  
+  # allocate vectors for female x index dataframe
+  female_vector <- index_vector <- transitive <- stoch <- pattern <- best_male <- vector(length = nrow(df))
+  
+  # make all the nodes stay in the same spots across all graphs
+  g <- graph( c("C", "B", "B", "A", "C", "A"), directed = TRUE)
+  l <- layout.reingold.tilford(g) 
+  rm(g)
+  
+  for(i in 1:nrow(df)){
+    
+    # get the name of the fish
+    name <- df$female[i] %>% as.character
+    print(name)
+    
+    x <- df$a_vs_b[i]
+    y <- df$b_vs_c[i]
+    z <- df$a_vs_c[i]
+    print(c(x,y,z))
+    
+    
+    # determine the direction of preference for each comparison
+    # transitive: all x, y, z > 0
+    if(x >= 0 && y >= 0 && z >= 0){
+      g <- graph( c("C", "B", "B", "A", "C", "A"), directed = TRUE)
+      E(g)$weight <- c(df$a_vs_b[i], df$b_vs_c[i], df$a_vs_c[i]) 
+      g <- set.graph.attribute(g, "transitivity", "transitive")
+      g <- set.graph.attribute(g, "pattern", "abc")
+      g <- set.graph.attribute(g, "best_male", "a")
+      ss <- ifelse(z <= min(x,y), "weak",
+                   ifelse(z <= max(x,y), "moderate", "strong"))
+      g <- set.graph.attribute(g, "ss", ss)
+      
+    } else if(x < 0 & y >= 0 & z >= 0){
+      g <- graph( c("B", "C", "B", "A", "C", "A"), directed = TRUE)
+      E(g)$weight <- c((-1 * df$a_vs_b[i]), df$b_vs_c[i], df$a_vs_c[i]) 
+      g <- set.graph.attribute(g, "transitivity", "transitive")
+      g <- set.graph.attribute(g, "best_male", "a")
+      g <- set.graph.attribute(g, "pattern", "bac")
+      ss <- ifelse(y <= min(1-x,z), "weak",
+                   ifelse(y <= max(1-x,z), "moderate", "strong"))
+      g <- set.graph.attribute(g, "ss", ss)
+      
+    } else if(x >= 0 & y < 0 & z >= 0){
+      g <- graph( c("C", "B", "A", "B", "C", "A"), directed = TRUE)
+      E(g)$weight <- c(df$a_vs_b[i], (-1 * df$b_vs_c[i]), df$a_vs_c[i]) 
+      g <- set.graph.attribute(g, "transitivity", "transitive")
+      g <- set.graph.attribute(g, "best_male", "b")
+      g <- set.graph.attribute(g, "pattern", "acb")
+      ss <- ifelse(x <= min(1-y,z), "weak",
+                   ifelse(x <= max(1-y,z), "moderate", "strong"))
+      g <- set.graph.attribute(g, "ss", ss)
+      
+    } else if(x >= 0 & y >= 0 & z < 0){
+      g <- graph( c("C", "B", "B", "A", "A", "C"), directed = TRUE)
+      E(g)$weight <- c(df$a_vs_b[i], df$b_vs_c[i], (-1 * df$a_vs_c[i])) 
+      g <- set.graph.attribute(g, "transitivity", "intransitive")
+      g <- set.graph.attribute(g, "best_male", "none")
+      g <- set.graph.attribute(g, "pattern", "abca")
+      g <- set.graph.attribute(g, "ss", "weak")
+      
+    } else if(x >= 0 & y < 0 & z < 0){
+      g <- graph( c("C", "B", "A", "B", "A", "C"), directed = TRUE)
+      E(g)$weight <- c(df$a_vs_b[i], (-1 * df$b_vs_c[i]), (-1 * df$a_vs_c[i])) 
+      g <- set.graph.attribute(g, "transitivity", "transitive")
+      g <- set.graph.attribute(g, "best_male", "b")
+      g <- set.graph.attribute(g, "pattern", "cab")
+      ss <- ifelse(1-y <= min(x, 1-z), "weak",
+                   ifelse(1-y <= max(x, 1-z), "moderate", "strong"))
+      g <- set.graph.attribute(g, "ss", ss)
+      
+    } else if(x < 0 & y < 0 & z < 0){
+      g <- graph( c("B", "C", "A", "B", "A", "C"), directed = TRUE)
+      E(g)$weight <- c((-1 * df$a_vs_b[i]), (-1 * df$b_vs_c[i]), (-1 * df$a_vs_c[i])) 
+      g <- set.graph.attribute(g, "transitivity", "transitive")
+      g <- set.graph.attribute(g, "best_male", "c")
+      g <- set.graph.attribute(g, "pattern", "cba")
+      ss <- ifelse(1-z <= min(1-x, 1-y), "weak",
+                   ifelse(1-z <= max(1-x, 1-y), "moderate", "strong"))
+      g <- set.graph.attribute(g, "ss", ss)
+      
+    } else if(x < 0 & y >= 0 & z < 0){
+      g <- graph( c("B", "C", "B", "A", "A", "C"), directed = TRUE)
+      E(g)$weight <- c((-1 * df$a_vs_b[i]), df$b_vs_c[i], (-1 * df$a_vs_c[i])) 
+      g <- set.graph.attribute(g, "transitivity", "transitive")
+      g <- set.graph.attribute(g, "best_male", "c")
+      g <- set.graph.attribute(g, "pattern", "bca")
+      ss <- ifelse(1-x <= min(y, 1-z), "weak",
+                   ifelse(1-x <= max(y, 1-z), "moderate", "strong"))
+      g <- set.graph.attribute(g, "ss", ss)
+      
+    } else if(x < 0 & y < 0 & z >= 0){
+      g <- graph( c("B", "C", "A", "B", "C", "A"), directed = TRUE)
+      E(g)$weight <- c((-1 * df$a_vs_b[i]), (-1 * df$b_vs_c[i]), df$a_vs_c[i]) 
+      g <- set.graph.attribute(g, "transitivity", "intransitive")
+      g <- set.graph.attribute(g, "best_male", "none")
+      g <- set.graph.attribute(g, "pattern", "cbac")
+      g <- set.graph.attribute(g, "ss", "weak")
+      
+    } else{
+      stop("something's gone wrong. check if else statements.")
+    } ## end series of if-else statement
+    
+    # coerse to network class
+    g <- asNetwork(g)
+    
+    network::set.edge.attribute(g, "color", ifelse(g %e% "weight" >= 0, "black", "grey80"))
+    network::set.edge.attribute(g, "thickness", g %e% "weight" *2)
+    network::set.vertex.attribute(g, "color", ifelse(network::get.network.attribute(g, "transitivity") == "intransitive", "red", "grey50"))
+    
+    # calculate the index
+    # this is a little tricky since in a transitive network, we have to figure out the comparison that doesn't really matter
+    if(network::get.network.attribute(g, "transitivity") == "intransitive"){
+      index <- g %e% "weight" %>% 
+        min %>% 
+        subtract(0) %>%
+        multiply_by(-1)
+    } else if(network::get.network.attribute(g, "best_male") == "a") {
+      index <- g %e% "weight" %>% 
+        extract(c(2,3)) %>%
+        min %>%
+        subtract(0)
+    } else if(network::get.network.attribute(g, "best_male") == "b"){
+      index <- g %e% "weight" %>% 
+        extract(c(1,2)) %>%
+        min %>%
+        subtract(0)
+    }
+    else if(network::get.network.attribute(g, "best_male") == "c"){
+      index <- g %e% "weight" %>% 
+        extract(c(1,3)) %>%
+        min %>%
+        subtract(0)
+    } else{
+      stop(paste0("trouble calcualting intransitivity index for ", name))
+    }
+    # if(i == 7){
+    #   browser()
+    # }
+    # 
+    plot_list[[i]] <- ggnet2(g,
+                             label = TRUE,
+                             layout.exp = .3,
+                             arrow.size = 12,
+                             arrow.gap = 0.1,
+                             edge.label = "weight",
+                             edge.size = "thickness",
+                             edge.color = "color",
+                             node.color = "color",
+                             size = 15,
+                             mode = l
+    ) + ggtitle(name)
+    
+    # name the vector element
+    names(plot_list)[i] <- name
+    print(i)
+    
+    # add the female's name and the index to vectors
+    female_vector[i] <- name
+    index_vector[i] <- index
+    transitive[i] <- network::get.network.attribute(g, "transitivity")
+    pattern[i] <- network::get.network.attribute(g, "pattern")
+    stoch[i] <- network::get.network.attribute(g, "ss")
+    best_male[i] <- network::get.network.attribute(g, "best_male")
+    
+  } ## end for loop
+  
+  # make a dataframe from the female and index vectors
+  d <- data.frame(female = female_vector, index = index_vector, transitive_status = transitive, pattern = pattern, stoch = stoch, best_male = best_male)
+  
+  return(list(plot_list, d))
+} # end function
+
+
+
+
+
 ## read in the data
 setwd("~/Documents/cricket_trans/data/")
 files <- list.files()
@@ -204,7 +396,7 @@ ggsave(file, height = 5, width = 5)
 
 final %>% 
   filter(transitive_status != "intransitive") %>% 
-  mutate(strictly_transitive = ifelse(stoch == "neither", TRUE, FALSE)) %>%
+  mutate(strictly_transitive = ifelse(stoch == "strong", TRUE, FALSE)) %>%
   group_by(exp, strictly_transitive) %>% 
   tally %>% 
   ggplot(aes(area = n, fill = strictly_transitive, label = strictly_transitive)) +
@@ -221,7 +413,7 @@ final %>%
 
 source("https://raw.githubusercontent.com/lukereding/random_scripts/master/plotting_functions.R")
 final %>% 
-  mutate(strictly_transitive = ifelse(stoch == "neither", TRUE, FALSE)) %>%
+  mutate(strictly_transitive = ifelse(stoch == "strong", TRUE, FALSE)) %>%
   filter(transitive_status != "intransitive") %>%
   mutate(class = ifelse(exp %in% c("panel_a_values", "panel_b_values", "panel_c_values"), "one", 
                                    ifelse(exp %in% c("panel_d_values", "panel_e_values", "panel_f_values"), "two", "three"))) %>% {
@@ -322,189 +514,3 @@ nested %>%
 
 
 
-
-
-return.transitivity.directed.plots <- function(df){
-  
-  library(igraph)
-  library(network)
-  library(sna)
-  library(ggplot2)
-  library(GGally)
-  library(intergraph)
-  library(cowplot)
-  
-  # allocate a list for the graphs
-  plot_list <- vector(mode = "list", length = nrow(df))
-  
-  # allocate vectors for female x index dataframe
-  female_vector <- index_vector <- transitive <- stoch <- pattern <- best_male <- vector(length = nrow(df))
-  
-  # make all the nodes stay in the same spots across all graphs
-  g <- graph( c("C", "B", "B", "A", "C", "A"), directed = TRUE)
-  l <- layout.reingold.tilford(g) 
-  rm(g)
-  
-  for(i in 1:nrow(df)){
-    
-    # get the name of the fish
-    name <- df$female[i] %>% as.character
-    print(name)
-    
-    x <- df$a_vs_b[i]
-    y <- df$b_vs_c[i]
-    z <- df$a_vs_c[i]
-    print(c(x,y,z))
-    
-    
-    # determine the direction of preference for each comparison
-    # transitive: all x, y, z > 0
-    if(x >= 0 && y >= 0 && z >= 0){
-      g <- graph( c("C", "B", "B", "A", "C", "A"), directed = TRUE)
-      E(g)$weight <- c(df$a_vs_b[i], df$b_vs_c[i], df$a_vs_c[i]) 
-      g <- set.graph.attribute(g, "transitivity", "transitive")
-      g <- set.graph.attribute(g, "pattern", "abc")
-      g <- set.graph.attribute(g, "best_male", "a")
-      ss <- ifelse(z <= min(x,y), "violates moderate",
-                   ifelse(z <= max(x,y), "violates strong", "neither"))
-      g <- set.graph.attribute(g, "ss", ss)
-      
-    } else if(x < 0 & y >= 0 & z >= 0){
-      g <- graph( c("B", "C", "B", "A", "C", "A"), directed = TRUE)
-      E(g)$weight <- c((-1 * df$a_vs_b[i]), df$b_vs_c[i], df$a_vs_c[i]) 
-      g <- set.graph.attribute(g, "transitivity", "transitive")
-      g <- set.graph.attribute(g, "best_male", "a")
-      g <- set.graph.attribute(g, "pattern", "bac")
-      ss <- ifelse(y <= min(1-x,z), "violates moderate",
-                   ifelse(y <= max(1-x,z), "violates strong", "neither"))
-      g <- set.graph.attribute(g, "ss", ss)
-      
-    } else if(x >= 0 & y < 0 & z >= 0){
-      g <- graph( c("C", "B", "A", "B", "C", "A"), directed = TRUE)
-      E(g)$weight <- c(df$a_vs_b[i], (-1 * df$b_vs_c[i]), df$a_vs_c[i]) 
-      g <- set.graph.attribute(g, "transitivity", "transitive")
-      g <- set.graph.attribute(g, "best_male", "b")
-      g <- set.graph.attribute(g, "pattern", "acb")
-      ss <- ifelse(x <= min(1-y,z), "violates moderate",
-                   ifelse(x <= max(1-y,z), "violates strong", "neither"))
-      g <- set.graph.attribute(g, "ss", ss)
-      
-    } else if(x >= 0 & y >= 0 & z < 0){
-      g <- graph( c("C", "B", "B", "A", "A", "C"), directed = TRUE)
-      E(g)$weight <- c(df$a_vs_b[i], df$b_vs_c[i], (-1 * df$a_vs_c[i])) 
-      g <- set.graph.attribute(g, "transitivity", "intransitive")
-      g <- set.graph.attribute(g, "best_male", "none")
-      g <- set.graph.attribute(g, "pattern", "abca")
-      g <- set.graph.attribute(g, "ss", "weak")
-      
-    } else if(x >= 0 & y < 0 & z < 0){
-      g <- graph( c("C", "B", "A", "B", "A", "C"), directed = TRUE)
-      E(g)$weight <- c(df$a_vs_b[i], (-1 * df$b_vs_c[i]), (-1 * df$a_vs_c[i])) 
-      g <- set.graph.attribute(g, "transitivity", "transitive")
-      g <- set.graph.attribute(g, "best_male", "b")
-      g <- set.graph.attribute(g, "pattern", "cab")
-      ss <- ifelse(1-y <= min(x, 1-z), "violates moderate",
-                   ifelse(1-y <= max(x, 1-z), "violates strong", "neither"))
-      g <- set.graph.attribute(g, "ss", ss)
-      
-    } else if(x < 0 & y < 0 & z < 0){
-      g <- graph( c("B", "C", "A", "B", "A", "C"), directed = TRUE)
-      E(g)$weight <- c((-1 * df$a_vs_b[i]), (-1 * df$b_vs_c[i]), (-1 * df$a_vs_c[i])) 
-      g <- set.graph.attribute(g, "transitivity", "transitive")
-      g <- set.graph.attribute(g, "best_male", "c")
-      g <- set.graph.attribute(g, "pattern", "cba")
-      ss <- ifelse(1-z <= min(1-x, 1-y), "violates moderate",
-                   ifelse(1-z <= max(1-x, 1-y), "violates strong", "neither"))
-      g <- set.graph.attribute(g, "ss", ss)
-      
-    } else if(x < 0 & y >= 0 & z < 0){
-      g <- graph( c("B", "C", "B", "A", "A", "C"), directed = TRUE)
-      E(g)$weight <- c((-1 * df$a_vs_b[i]), df$b_vs_c[i], (-1 * df$a_vs_c[i])) 
-      g <- set.graph.attribute(g, "transitivity", "transitive")
-      g <- set.graph.attribute(g, "best_male", "c")
-      g <- set.graph.attribute(g, "pattern", "bca")
-      ss <- ifelse(1-x <= min(y, 1-z), "violates moderate",
-                   ifelse(1-x <= max(y, 1-z), "violates strong", "neither"))
-      g <- set.graph.attribute(g, "ss", ss)
-      
-    } else if(x < 0 & y < 0 & z >= 0){
-      g <- graph( c("B", "C", "A", "B", "C", "A"), directed = TRUE)
-      E(g)$weight <- c((-1 * df$a_vs_b[i]), (-1 * df$b_vs_c[i]), df$a_vs_c[i]) 
-      g <- set.graph.attribute(g, "transitivity", "intransitive")
-      g <- set.graph.attribute(g, "best_male", "none")
-      g <- set.graph.attribute(g, "pattern", "cbac")
-      g <- set.graph.attribute(g, "ss", "weak")
-      
-    } else{
-      stop("something's gone wrong. check if else statements.")
-    } ## end series of if-else statement
-    
-    # coerse to network class
-    g <- asNetwork(g)
-    
-    network::set.edge.attribute(g, "color", ifelse(g %e% "weight" >= 0, "black", "grey80"))
-    network::set.edge.attribute(g, "thickness", g %e% "weight" *2)
-    network::set.vertex.attribute(g, "color", ifelse(network::get.network.attribute(g, "transitivity") == "intransitive", "red", "grey50"))
-    
-    # calculate the index
-    # this is a little tricky since in a transitive network, we have to figure out the comparison that doesn't really matter
-    if(network::get.network.attribute(g, "transitivity") == "intransitive"){
-      index <- g %e% "weight" %>% 
-        min %>% 
-        subtract(0) %>%
-        multiply_by(-1)
-    } else if(network::get.network.attribute(g, "best_male") == "a") {
-      index <- g %e% "weight" %>% 
-        extract(c(2,3)) %>%
-        min %>%
-        subtract(0)
-    } else if(network::get.network.attribute(g, "best_male") == "b"){
-      index <- g %e% "weight" %>% 
-        extract(c(1,2)) %>%
-        min %>%
-        subtract(0)
-    }
-    else if(network::get.network.attribute(g, "best_male") == "c"){
-      index <- g %e% "weight" %>% 
-        extract(c(1,3)) %>%
-        min %>%
-        subtract(0)
-    } else{
-      stop(paste0("trouble calcualting intransitivity index for ", name))
-    }
-    # if(i == 7){
-    #   browser()
-    # }
-    # 
-    plot_list[[i]] <- ggnet2(g,
-                             label = TRUE,
-                             layout.exp = .3,
-                             arrow.size = 12,
-                             arrow.gap = 0.1,
-                             edge.label = "weight",
-                             edge.size = "thickness",
-                             edge.color = "color",
-                             node.color = "color",
-                             size = 15,
-                             mode = l
-    ) + ggtitle(name)
-    
-    # name the vector element
-    names(plot_list)[i] <- name
-    print(i)
-    
-    # add the female's name and the index to vectors
-    female_vector[i] <- name
-    index_vector[i] <- index
-    transitive[i] <- network::get.network.attribute(g, "transitivity")
-    pattern[i] <- network::get.network.attribute(g, "pattern")
-    stoch[i] <- network::get.network.attribute(g, "ss")
-    best_male[i] <- network::get.network.attribute(g, "best_male")
-    
-  } ## end for loop
-  
-  # make a dataframe from the female and index vectors
-  d <- data.frame(female = female_vector, index = index_vector, transitive_status = transitive, pattern = pattern, stoch = stoch, best_male = best_male)
-  
-  return(list(plot_list, d))
-} # end function
