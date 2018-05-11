@@ -199,8 +199,9 @@ files <- list.files()
 files <- files[!files %in% "README.md"]
 
 require(tidyverse)
-require(magrittr)
 require(broom)
+require(magrittr)
+
 
 # get population level data
 for(i in 1:length(files)){

@@ -66,7 +66,7 @@ _Re-analysis_.
 
 ### voting paradox / levels of analysis
 
-In his opus, _The Growth of Biological Thought_, Ernst Mayr aruges that one thing that sets biology apart from more traditional, 'harder' sciences is the presence of X (can't think of the word): in biology, the whole is rarely a simple sum of its parts. And while studying the individual parts of some biological system is undoubtably valuable, it's often misleading to assume that we can understand everything about some system from studying its parts in isolation.
+In his opus, _The Growth of Biological Thought_, Ernst Mayr aruges that one thing that sets biology apart from more traditional, 'harder' sciences is the presence of reductionism (can't think of the word): in biology, the whole is rarely a simple sum of its parts. And while studying the individual parts of some biological system is undoubtably valuable, it's often misleading to assume that we can understand everything about some system from studying its parts in isolation.
 
 The same holds true for the study of preferences. It seems reasonable to assume, for instance, that studying decision-making at the level of the population is likely to yeild the same answers as studying decision-making at the level of the individual. The voting paradox shows us why this is flawed thinking, a special case ofthe fallacy of composition.
 
@@ -86,7 +86,7 @@ Why does this matter? Perhaps, as evolutionary biologists interested in how popu
 
 - biologists are used to studying mating preferences at the level of the population
 
-  This was mostly becuase we were typically interested in the effects of female mate choice on broad evolutionary patterns: its ability to accelerate speciation, for example, and change the frequencies of male traits. But as the study of mating preferences becomes more refined and focused on the individual, we need to re-assess the biological level at which we test our questions. Questions about the choice mechanisms that females use to choose mates arguably demand the perspective of the individual; taking the typical population-level approach is unlikely to yeild anything close to answering the questions we set out to answer.
+  This was mostly because we were typically interested in the effects of female mate choice on broad evolutionary patterns: its ability to accelerate speciation, for example, and change the frequencies of male traits. But as the study of mating preferences becomes more refined and focused on the individual, we need to re-assess the biological level at which we test our questions. Questions about the choice mechanisms that females use to choose mates arguably demand the perspective of the individual; taking the typical population-level approach is unlikely to yeild anything close to answering the questions we set out to answer.
 
 - toy example
 
